@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apple Deals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --ink: #111;
+  --ink2: #444;
+  --ink3: #999;
+  --rule: #ebebeb;
+  --bg: #fff;
+  --surface: #f8f8f8;
+  --green: #1a6644;
+  --green-bg: #f0faf5;
+  --amber: #7a4f00;
+  --amber-bg: #fdf8ee;
+  --blue: #1a3d6e;
+  --blue-bg: #f0f5fc;
+  --red: #8b1a1a;
+}
+body {
+  font-family: 'Geist', -apple-system, sans-serif;
+  color: var(--ink); background: var(--bg);
+  font-size: 13.5px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* GATE */
+#gate {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; z-index: 999;
+}
+.gate-title {
+  font-family: 'Instrument Serif', serif; font-size: 22px;
+  font-weight: 400; color: var(--ink); margin-bottom: 8px;
+}
+#gate input {
+  width: 260px; padding: 9px 13px;
+  border: 1px solid var(--rule); border-radius: 7px;
+  font-family: 'Geist', sans-serif; font-size: 14px;
+  color: var(--ink); outline: none; transition: border-color 0.15s;
+}
+#gate input:focus { border-color: #aaa; }
+#gate button {
+  width: 260px; padding: 9px; background: var(--ink); color: #fff;
+  border: none; border-radius: 7px; font-family: 'Geist', sans-serif;
+  font-size: 13.5px; cursor: pointer; transition: opacity 0.15s; margin-top: 2px;
+}
+#gate button:hover { opacity: 0.75; }
+#gate-err { font-size: 12px; color: var(--red); display: none; margin-top: 2px; }
+
+/* APP */
+#app { display: none; }
+
+/* HEADER */
+header {
+  position: sticky; top: 0;
+  background: rgba(255,255,255,0.94); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--rule); z-index: 50; padding: 0 40px;
+}
+.hd {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 54px; gap: 20px;
+}
+.logo {
+  font-family: 'Instrument Serif', serif; font-size: 17px;
+  font-weight: 400; color: var(--ink); white-space: nowrap;
+}
+.hd-meta {
+  font-size: 12px; color: var(--ink3);
+  display: flex; align-items: center; gap: 14px;
+}
+.pulse {
+  display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: #22c55e;
+  animation: blink 2.4s ease infinite; margin-right: 4px;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* NAV */
+nav {
+  display: flex; overflow-x: auto; scrollbar-width: none;
+  border-bottom: 1px solid var(--rule); padding: 0 40px; background: var(--bg);
+}
+nav::-webkit-scrollbar { display: none; }
+.tab {
+  font-size: 13px; font-weight: 400; color: var(--ink3);
+  padding: 11px 16px; border: none; border-bottom: 2px solid transparent;
+  background: none; cursor: pointer; white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab:hover { color: var(--ink2); }
+.tab.on { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+
+/* MAIN */
+main { max-width: 860px; padding: 36px 40px 80px; }
+section { display: none; }
+section.on { display: block; }
+
+/* SECTION HEAD */
+.sh { margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
+.sh-eyebrow { font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink3); margin-bottom: 6px; }
+.sh-title { font-family: 'Instrument Serif', serif; font-size: 26px; font-weight: 400; letter-spacing: -0.02em; color: var(--ink); line-height: 1.2; }
+.sh-sub { font-size: 13px; color: var(--ink3); margin-top: 5px; }
+
+/* NOTICE */
+.notice { font-size: 12.5px; padding: 11px 15px; border-radius: 7px; margin-bottom: 24px; line-height: 1.55; }
+.notice-green { background: var(--green-bg); color: var(--green); }
+.notice-amber { background: var(--amber-bg); color: var(--amber); }
+.notice-blue  { background: var(--blue-bg);  color: var(--blue);  }
+
+/* STATS */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 32px; }
+.stat { background: var(--surface); border-radius: 8px; padding: 14px 16px; }
+.stat-l { font-size: 11px; color: var(--ink3); margin-bottom: 3px; }
+.stat-v { font-size: 20px; font-weight: 500; letter-spacing: -0.03em; color: var(--ink); }
+.stat-v.g { color: var(--green); }
+.stat-v.b { color: var(--blue); }
+.stat-v.a { color: var(--amber); }
+
+/* TABLE */
+.tbl-wrap { border: 1px solid var(--rule); border-radius: 9px; overflow: hidden; margin-bottom: 28px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink3); padding: 10px 16px;
+  background: var(--surface); border-bottom: 1px solid var(--rule); text-align: left;
+}
+tbody td { padding: 11px 16px; border-bottom: 1px solid var(--rule); color: var(--ink2); vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--surface); }
+.rn { font-weight: 500; color: var(--ink); }
+.p-best { color: var(--green); font-weight: 500; }
+.p-edu  { color: var(--blue); font-weight: 500; }
+.p-orig { color: var(--ink3); text-decoration: line-through; font-size: 12px; }
+.p-na   { color: var(--ink3); }
+.btn {
+  display: inline-block; font-size: 11.5px; color: var(--ink2);
+  text-decoration: none; padding: 4px 10px;
+  border: 1px solid var(--rule); border-radius: 5px;
+  transition: background 0.12s, border-color 0.12s; white-space: nowrap;
+}
+.btn:hover { background: var(--surface); border-color: #ccc; }
+
+/* CARDS */
+.cards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
+.card { padding: 18px 20px; border: 1px solid var(--rule); border-radius: 9px; transition: border-color 0.15s; }
+.card:hover { border-color: #ccc; }
+.card.top { border-color: #c8e0d4; background: #fafdfb; }
+.card-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.card-name { font-weight: 500; font-size: 14px; color: var(--ink); }
+.card-price { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+.card-p { font-size: 20px; font-weight: 500; letter-spacing: -0.03em; color: var(--ink); }
+.card-was { font-size: 12px; color: var(--ink3); text-decoration: line-through; }
+.card-save { font-size: 12px; color: var(--green); font-weight: 500; }
+.card-body { font-size: 13px; color: var(--ink3); line-height: 1.55; margin-bottom: 10px; }
+.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+.tag-g { background: var(--green-bg); color: var(--green); }
+.tag-b { background: var(--blue-bg);  color: var(--blue); }
+.tag-a { background: var(--amber-bg); color: var(--amber); }
+.tag-n { background: var(--surface);  color: var(--ink3); }
+
+/* DIVIDER LABEL */
+.divlabel {
+  font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--ink3); padding: 20px 0 12px;
+  border-top: 1px solid var(--rule); margin-top: 8px;
+}
+.divlabel:first-child { padding-top: 0; border-top: none; }
+
+/* STRATEGY */
+.strategy {
+  border-left: 2px solid var(--rule); padding: 16px 20px;
+  margin-top: 28px; background: var(--surface); border-radius: 0 8px 8px 0;
+}
+.strategy h4 {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink3); margin-bottom: 10px;
+}
+.strategy ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.strategy li { font-size: 13px; color: var(--ink2); padding-left: 14px; position: relative; line-height: 1.5; }
+.strategy li::before { content: '–'; position: absolute; left: 0; color: var(--ink3); }
+
+/* OVERVIEW GRID */
+.ov-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 28px; }
+.ov-card { border: 1px solid var(--rule); border-radius: 9px; padding: 16px 18px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.ov-card:hover { border-color: #bbb; background: var(--surface); }
+.ov-cat { font-size: 11px; color: var(--ink3); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
+.ov-name { font-weight: 500; font-size: 14px; color: var(--ink); margin-bottom: 8px; }
+.ov-price { font-family: 'Instrument Serif', serif; font-size: 26px; color: var(--green); letter-spacing: -0.02em; line-height: 1; }
+.ov-context { font-size: 11.5px; color: var(--ink3); margin-top: 4px; }
+
+/* FOOTER */
+footer {
+  border-top: 1px solid var(--rule); padding: 18px 40px;
+  font-size: 11.5px; color: var(--ink3);
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+}
+
+@media (max-width: 600px) {
+  header, nav, main, footer { padding-left: 18px; padding-right: 18px; }
+  .stats { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- GATE -->
+<div id="gate">
+  <div class="gate-title">Apple Deals</div>
+  <input id="pw" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')unlock()">
+  <button onclick="unlock()">Enter</button>
+  <div id="gate-err">Incorrect password</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+<header>
+  <div class="hd">
+    <div class="logo">Apple Deals</div>
+    <div class="hd-meta">
+      <span><span class="pulse"></span>Updated <span id="upd-date">daily</span></span>
+      <span>Zip 90035</span>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <button class="tab on"  onclick="go('overview')">Overview</button>
+  <button class="tab"     onclick="go('macbook')">MacBook Air M5</button>
+  <button class="tab"     onclick="go('ipadair')">iPad Air M4</button>
+  <button class="tab"     onclick="go('ipadmini')">iPad mini 7</button>
+  <button class="tab"     onclick="go('ipad')">iPad 11th Gen</button>
+</nav>
+
+<main>
+
+<!-- OVERVIEW -->
+<section id="overview" class="on">
+  <div class="sh">
+    <div class="sh-eyebrow">All products</div>
+    <div class="sh-title">Best prices today</div>
+    <div class="sh-sub" id="ov-sub"></div>
+  </div>
+
+  <div class="ov-grid">
+    <div class="ov-card" onclick="go('macbook')">
+      <div class="ov-cat">MacBook</div>
+      <div class="ov-name">Air 13" M5 · 16GB/512GB</div>
+      <div class="ov-price">$1,049</div>
+      <div class="ov-context">$50 off MSRP · Amazon</div>
+    </div>
+    <div class="ov-card" onclick="go('macbook')">
+      <div class="ov-cat">MacBook</div>
+      <div class="ov-name">Air 15" M5 · 16GB/512GB</div>
+      <div class="ov-price">$1,249</div>
+      <div class="ov-context">$50 off MSRP · Amazon</div>
+    </div>
+    <div class="ov-card" onclick="go('ipadair')">
+      <div class="ov-cat">iPad</div>
+      <div class="ov-name">iPad Air 11" M4 · 128GB</div>
+      <div class="ov-price">$559</div>
+      <div class="ov-context">$40 off MSRP · Amazon</div>
+    </div>
+    <div class="ov-card" onclick="go('ipadair')">
+      <div class="ov-cat">iPad</div>
+      <div class="ov-name">iPad Air 13" M4 · 128GB</div>
+      <div class="ov-price">$749</div>
+      <div class="ov-context">$50 off MSRP · Amazon</div>
+    </div>
+    <div class="ov-card" onclick="go('ipadmini')">
+      <div class="ov-cat">iPad</div>
+      <div class="ov-name">iPad mini 7 · 128GB</div>
+      <div class="ov-price">$399</div>
+      <div class="ov-context">$100 off MSRP · Amazon / BB</div>
+    </div>
+    <div class="ov-card" onclick="go('ipad')">
+      <div class="ov-cat">iPad</div>
+      <div class="ov-name">iPad 11th Gen · 128GB</div>
+      <div class="ov-price">$299</div>
+      <div class="ov-context">$50 off MSRP · Amazon</div>
+    </div>
+  </div>
+
+  <div class="divlabel">Hottest right now</div>
+  <div class="cards">
+    <div class="card top">
+      <div class="card-row">
+        <div class="card-name">iPad mini 7 128GB — Amazon &amp; Best Buy</div>
+        <div class="card-price"><span class="card-p">$399</span><span class="card-was">$499</span><span class="card-save">–$100</span></div>
+      </div>
+      <div class="card-body">All four colors in stock at both retailers. Matches the Black Friday all-time floor — the best recurring price this model ever hits.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-g">Best deal</span><span class="tag tag-n">All colors</span></div>
+        <a class="btn" href="https://www.amazon.com/s?k=ipad+mini+7+128gb" target="_blank">Shop Amazon ↗</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div class="card-name">MacBook Air 13" M5 — Amazon</div>
+        <div class="card-price"><span class="card-p">$1,049</span><span class="card-was">$1,099</span><span class="card-save">–$50</span></div>
+      </div>
+      <div class="card-body">Lowest cash price on the 13" M5 Air. 16GB / 512GB. No membership required.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-g">Best cash price</span></div>
+        <a class="btn" href="https://www.amazon.com/s?k=macbook+air+m5+13+512gb" target="_blank">Shop Amazon ↗</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div class="card-name">iPad Air 11" M4 — Amazon / Best Buy</div>
+        <div class="card-price"><span class="card-p">$559</span><span class="card-was">$599</span><span class="card-save">–$40</span></div>
+      </div>
+      <div class="card-body">First-ever discount on the M4 model, matched at both retailers at launch. All four colors.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-n">Launch deal</span></div>
+        <a class="btn" href="https://www.amazon.com/s?k=ipad+air+m4+11+inch+2026" target="_blank">Shop Amazon ↗</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div class="card-name">iPad 11th Gen 128GB — Amazon</div>
+        <div class="card-price"><span class="card-p">$299</span><span class="card-was">$349</span><span class="card-save">–$50</span></div>
+      </div>
+      <div class="card-body">Only $21 above the all-time low of $278. Best budget iPad right now.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-n">Near ATL</span></div>
+        <a class="btn" href="https://www.amazon.com/s?k=ipad+11th+generation+128gb" target="_blank">Shop Amazon ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="strategy">
+    <h4>When will prices drop further?</h4>
+    <ul>
+      <li>M5 MacBook Air &amp; M4 iPad Air launched March 11 — expect $75–100 off at Memorial Day (late May).</li>
+      <li>Prime Day (July) historically brings $100–150 off MacBook Airs and iPads.</li>
+      <li>Apple Certified Refurbished M5 Air &amp; M4 iPad Air: estimated June 2026.</li>
+      <li>Education pricing saves $50–100 right now — best immediate discount if you qualify.</li>
+      <li>iPad mini 8 rumored for October 2026 — prices on mini 7 will drop at that announcement.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- MACBOOK AIR M5 -->
+<section id="macbook">
+  <div class="sh">
+    <div class="sh-eyebrow">MacBook</div>
+    <div class="sh-title">MacBook Air M5 — 16GB / 512GB</div>
+    <div class="sh-sub">Launched March 11, 2026 · 8-core GPU (13") · 10-core GPU (15")</div>
+  </div>
+  <div class="notice notice-amber">Launched 6 days ago. Amazon has $50 off on all colors. Best Buy matches select models and adds a $50 gift card for Plus/Total members. Apple Certified Refurb not available yet — estimated June 2026.</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-l">Best 13" cash</div><div class="stat-v g">$1,049</div></div>
+    <div class="stat"><div class="stat-l">Best 15" cash</div><div class="stat-v g">$1,249</div></div>
+    <div class="stat"><div class="stat-l">Education 13"</div><div class="stat-v b">$999</div></div>
+    <div class="stat"><div class="stat-l">Education 15"</div><div class="stat-v b">$1,199</div></div>
+    <div class="stat"><div class="stat-l">Max savings</div><div class="stat-v a">$100</div></div>
+    <div class="stat"><div class="stat-l">Open box est.</div><div class="stat-v">~$850+</div></div>
+  </div>
+  <div class="divlabel">13-inch — all retailers</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Retailer</th><th>Price</th><th>MSRP</th><th>Notes</th><th></th></tr></thead>
+    <tbody>
+      <tr><td class="rn">Amazon</td><td class="p-best">$1,049</td><td class="p-orig">$1,099</td><td>All colors, no membership</td><td><a class="btn" href="https://www.amazon.com/s?k=macbook+air+m5+13" target="_blank">Shop ↗</a></td></tr>
+      <tr><td class="rn">Costco</td><td class="p-best">$1,049</td><td class="p-orig">$1,099</td><td>90-day returns, limit 2</td><td><a class="btn" href="https://www.costco.com/macbook-air.html" target="_blank">Shop ↗</a></td></tr>
+      <tr><td class="rn">Best Buy</td><td>$1,099</td><td class="p-orig">$1,099</td><td>+$50 gift card (members) · price match</td><td><a class="btn" href="https://www.bestbuy.com/site/searchpage.jsp?st=macbook+air+m5" target="_blank">Shop ↗</a></td></tr>
+      <tr><td class="rn">Apple</td><td>$1,099</td><td class="p-orig">$1,099</td><td>Full MSRP</td><td><a class="btn" href="https://www.apple.com/shop/buy-mac/macbook-air" target="_blank">Shop ↗</a></td></tr>
+      <tr><td class="rn">Apple Education</td><td class="p-edu">$999</td><td class="p-orig">$1,099</td><td>Students, teachers, staff</td><td><a class="btn" href="https://www.apple.com/us-edu/shop/buy-mac/macbook-air" target="_blank">Shop ↗</a></td></tr>
+      <tr><td class="rn">B&amp;H Photo</td><td>$1,099</td><td class="p-orig">$1,099</td><td>No tax in most states</td><td><a class="btn" href="https://www.bhphotovideo.com/c/search?q=macbook+air+m5" target="_blank">Shop ↗</a></td></tr>
+      <tr><td class="rn">Apple Refurb</td><td class="p-na">N/A</td><td>—</td><td>Est. June 2026</td><td><a class="btn" href="https://www.apple.com/shop/refurbished/mac/macbook-air" target="_blank">Monitor ↗</a></td></tr>
+      <tr><td class="rn">Best Buy Open Box</td><td>~$850–950</td><td>—</td><td>Trickling in — check zip daily</td><td><a class="btn" href="https://www.bestbuy.com/site/open-box/macbook-air" target="_blank">Check ↗</a></td></tr>
+    </tbody>
+  </table></div>
+  <div class="divlabel">15-inch — all retailers</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Retailer</th><th>Price</th><th>MSRP</th><th>Notes</th><th></th></tr></thead>
+    <tbody>
+      <tr><td class="rn">Amazon</td><td class="p-best">$1,249</td><td class="p-orig">$1,299</td><td>All colors, first discount on M5</td><td><a class="btn" href="https://www.amazon.com/s?k=macbook+air+m5+15" target="_blank">Shop ↗</a></td></tr>
+      <tr><td class="rn">Best Buy</td><td>$1,299</td><td class="p-orig">$1,299</td><td>+$50 gift card (members)</td><td><a class="btn" href="https://www.bestbuy.com/site/searchpage.jsp?st=macbook+air+m5+15" target="_blank">Shop ↗</a></td></tr>
+      <tr><td class="rn">Apple Education</td><td class="p-edu">$1,199</td><td class="p-orig">$1,299</td><td>Best 15" price available</td><td><a class="btn" href="https://www.apple.com/us-edu/shop/buy-mac/macbook-air" target="_blank">Shop ↗</a></td></tr>
+      <tr><td class="rn">Apple Refurb</td><td class="p-na">N/A</td><td>—</td><td>Est. June 2026</td><td><a class="btn" href="https://www.apple.com/shop/refurbished/mac/macbook-air" target="_blank">Monitor ↗</a></td></tr>
+    </tbody>
+  </table></div>
+  <div class="divlabel">Notable deals</div>
+  <div class="cards">
+    <div class="card top">
+      <div class="card-row">
+        <div class="card-name">Best Buy stacked deal — 13"</div>
+        <div class="card-price"><span class="card-p">~$999</span><span class="card-save">effective</span></div>
+      </div>
+      <div class="card-body">Buy at Best Buy → price match Amazon's $1,049 → still receive $50 gift card if you're a Plus/Total member. Net cost matches education pricing without needing to qualify.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-g">Stacked</span><span class="tag tag-a">$50 gift card</span></div>
+        <a class="btn" href="https://www.bestbuy.com/site/searchpage.jsp?st=macbook+air+m5" target="_blank">Shop Best Buy ↗</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div class="card-name">Apple Education Store</div>
+        <div class="card-price"><span class="card-p">$999 / $1,199</span><span class="card-save">13" / 15"</span></div>
+      </div>
+      <div class="card-body">Students, teachers, K–12 and university staff. Verify with .edu email. Back to School (June–Aug) typically adds free AirPods.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-b">Education only</span></div>
+        <a class="btn" href="https://www.apple.com/us-edu/shop/buy-mac/macbook-air" target="_blank">Shop Edu ↗</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div class="card-name">M4 MacBook Air (prev. gen) — Clearance</div>
+        <div class="card-price"><span class="card-p">from $799</span><span class="card-save">all-time low</span></div>
+      </div>
+      <div class="card-body">Amazon clearing M4 inventory. 13" with 256GB as low as $799. Great value — but stock is disappearing fast.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-n">Prev. gen</span><span class="tag tag-g">All-time low</span></div>
+        <a class="btn" href="https://www.amazon.com/s?k=macbook+air+m4+13" target="_blank">Shop ↗</a>
+      </div>
+    </div>
+  </div>
+  <div class="strategy">
+    <h4>Buying strategy</h4>
+    <ul>
+      <li>Best cash deal: Amazon at $1,049 (13") or $1,249 (15") — no strings attached.</li>
+      <li>Best Buy members: price match Amazon + keep the $50 gift card → net ~$999 on the 13".</li>
+      <li>Education: $999 (13") or $1,199 (15") — best outright price if you qualify.</li>
+      <li>Don't buy "refurbished" M5 from third parties — it's only 6 days old, those are scams.</li>
+      <li>Open box at Best Buy: ~$850–950 Excellent condition. Check bestbuy.com/open-box zip 90035 daily.</li>
+      <li>Apple Certified Refurb arrives ~June 2026 at ~10–15% off.</li>
+      <li>Bigger discounts ($100–150 off) expected at Memorial Day and Prime Day (July).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- IPAD AIR M4 -->
+<section id="ipadair">
+  <div class="sh">
+    <div class="sh-eyebrow">iPad</div>
+    <div class="sh-title">iPad Air M4 (2026)</div>
+    <div class="sh-sub">Launched March 11, 2026 · 11" and 13" · Supports Apple Intelligence</div>
+  </div>
+  <div class="notice notice-green">Amazon discounted on launch day — up to $100 off higher configs. 11" 128GB is $559, 13" 128GB is $749. Best Buy matches base tiers.</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-l">Best 11" price</div><div class="stat-v g">$559</div></div>
+    <div class="stat"><div class="stat-l">Best 13" price</div><div class="stat-v g">$749</div></div>
+    <div class="stat"><div class="stat-l">Education 11"</div><div class="stat-v b">$549</div></div>
+    <div class="stat"><div class="stat-l">Education 13"</div><div class="stat-v b">$749</div></div>
+    <div class="stat"><div class="stat-l">Max savings</div><div class="stat-v a">$100</div></div>
+  </div>
+  <div class="divlabel">Full price table — Wi-Fi</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Model</th><th>MSRP</th><th>Amazon</th><th>Best Buy</th><th>Apple Edu</th></tr></thead>
+    <tbody>
+      <tr><td>11" 128GB</td><td class="p-orig">$599</td><td class="p-best">$559</td><td>$559</td><td class="p-edu">$549</td></tr>
+      <tr><td>11" 256GB</td><td class="p-orig">$699</td><td class="p-best">$649</td><td>$649</td><td class="p-edu">$649</td></tr>
+      <tr><td>11" 512GB</td><td class="p-orig">$899</td><td class="p-best">$839</td><td>$899</td><td class="p-edu">$849</td></tr>
+      <tr><td>11" 1TB</td><td class="p-orig">$1,099</td><td class="p-best">$1,019</td><td>$1,099</td><td class="p-edu">$1,049</td></tr>
+      <tr><td>13" 128GB</td><td class="p-orig">$799</td><td class="p-best">$749</td><td>$749</td><td class="p-edu">$749</td></tr>
+      <tr><td>13" 256GB</td><td class="p-orig">$899</td><td class="p-best">$839</td><td>$849</td><td class="p-edu">$849</td></tr>
+      <tr><td>13" 512GB</td><td class="p-orig">$1,099</td><td class="p-best">$999</td><td>$1,099</td><td class="p-edu">$1,049</td></tr>
+      <tr><td>13" 1TB</td><td class="p-orig">$1,299</td><td class="p-best">$1,199</td><td>$1,299</td><td class="p-edu">$1,249</td></tr>
+    </tbody>
+  </table></div>
+  <div class="cards">
+    <div class="card top">
+      <div class="card-row">
+        <div class="card-name">11" 128GB — Amazon / Best Buy</div>
+        <div class="card-price"><span class="card-p">$559</span><span class="card-was">$599</span><span class="card-save">–$40</span></div>
+      </div>
+      <div class="card-body">First-ever discount on M4 Air, matched at launch. All four colors: blue, purple, starlight, space gray.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-g">Launch deal</span></div>
+        <a class="btn" href="https://www.amazon.com/s?k=ipad+air+m4+11+2026" target="_blank">Shop ↗</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div class="card-name">M3 iPad Air — Clearance</div>
+        <div class="card-price"><span class="card-p">from $399</span><span class="card-save">while stock lasts</span></div>
+      </div>
+      <div class="card-body">M3 being cleared fast. 11" Wi-Fi M3 seen at $399. Apple won't make more — if you find stock, grab it. Still supports Apple Intelligence.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-n">Prev. gen</span><span class="tag tag-g">Clearance</span></div>
+        <a class="btn" href="https://www.amazon.com/s?k=ipad+air+m3+11" target="_blank">Shop ↗</a>
+      </div>
+    </div>
+  </div>
+  <div class="strategy">
+    <h4>Buying strategy</h4>
+    <ul>
+      <li>Amazon has the best prices across all configs — no membership needed.</li>
+      <li>Education ($549 for 11") beats Amazon on the base model if you qualify.</li>
+      <li>M3 clearance at ~$399 is exceptional value if you find stock — act fast.</li>
+      <li>Apple Certified Refurb M4 Air expected around June 2026.</li>
+      <li>Cellular adds $150 — Amazon occasionally discounts those too.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- IPAD MINI 7 -->
+<section id="ipadmini">
+  <div class="sh">
+    <div class="sh-eyebrow">iPad</div>
+    <div class="sh-title">iPad mini 7 (A17 Pro, 2024)</div>
+    <div class="sh-sub">Launched October 2024 · Supports Apple Intelligence</div>
+  </div>
+  <div class="notice notice-green">$100 off confirmed live at both Amazon and Best Buy as of March 16–17. Matches the Black Friday all-time floor. The only time it went lower was Cyber Monday 2024 at $150 off (one day).</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-l">Best 128GB</div><div class="stat-v g">$399</div></div>
+    <div class="stat"><div class="stat-l">Best 256GB</div><div class="stat-v g">$499</div></div>
+    <div class="stat"><div class="stat-l">Best 512GB</div><div class="stat-v g">$679</div></div>
+    <div class="stat"><div class="stat-l">All-time low</div><div class="stat-v a">$349</div></div>
+    <div class="stat"><div class="stat-l">Education</div><div class="stat-v b">$449</div></div>
+  </div>
+  <div class="divlabel">Full price table — Wi-Fi</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Storage</th><th>MSRP</th><th>Amazon Now</th><th>Best Buy</th><th>Apple Edu</th><th>All-Time Low</th></tr></thead>
+    <tbody>
+      <tr><td>128GB</td><td class="p-orig">$499</td><td class="p-best">$399</td><td>$399</td><td class="p-edu">$449</td><td>$349 (Cyber Mon)</td></tr>
+      <tr><td>256GB</td><td class="p-orig">$599</td><td class="p-best">$499</td><td>$499</td><td class="p-edu">$549</td><td>~$449</td></tr>
+      <tr><td>512GB</td><td class="p-orig">$779</td><td class="p-best">$679</td><td>$679</td><td class="p-edu">$729</td><td>~$629</td></tr>
+      <tr><td>128GB Cellular</td><td class="p-orig">$649</td><td>$599</td><td>$649</td><td class="p-edu">$599</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <div class="cards">
+    <div class="card top">
+      <div class="card-row">
+        <div class="card-name">128GB Wi-Fi — Amazon &amp; Best Buy</div>
+        <div class="card-price"><span class="card-p">$399</span><span class="card-was">$499</span><span class="card-save">–$100</span></div>
+      </div>
+      <div class="card-body">Live at both retailers. All colors: starlight, midnight, blue, purple. No membership required at Amazon.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-g">Best deal</span><span class="tag tag-n">All colors</span></div>
+        <a class="btn" href="https://www.amazon.com/s?k=ipad+mini+7+128gb" target="_blank">Shop Amazon ↗</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div class="card-name">Apple Certified Refurbished</div>
+        <div class="card-price"><span class="card-p">~$379+</span><span class="card-save">check stock</span></div>
+      </div>
+      <div class="card-body">Mini 7 launched Oct 2024 so refurb units exist now. Full 1-year warranty, new outer shell. Stock moves fast.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-g">Refurb available</span></div>
+        <a class="btn" href="https://www.apple.com/shop/refurbished/ipad/ipad-mini" target="_blank">Check ↗</a>
+      </div>
+    </div>
+  </div>
+  <div class="strategy">
+    <h4>Buying strategy</h4>
+    <ul>
+      <li>$100 off at Amazon/Best Buy matches the Black Friday floor — strong time to buy.</li>
+      <li>Education pricing ($449) is worse than Amazon's current $399 — skip it.</li>
+      <li>Apple Certified Refurb at ~$379 exists now — check the store for availability.</li>
+      <li>iPad mini 8 rumored for Oct 2026 with OLED + A18 Pro — prices drop at that announcement.</li>
+      <li>256GB is the sweet spot: $499 gives room to grow without overpaying for 512GB.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- IPAD 11TH GEN -->
+<section id="ipad">
+  <div class="sh">
+    <div class="sh-eyebrow">iPad</div>
+    <div class="sh-title">iPad 11th Gen (A16, 2025)</div>
+    <div class="sh-sub">Launched March 2025 · Does not support Apple Intelligence</div>
+  </div>
+  <div class="notice notice-blue">The 11th gen iPad does not support Apple Intelligence. If AI features matter to you, step up to the iPad mini 7 or iPad Air M4. That said — it's the best budget tablet Apple makes.</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-l">Best 128GB</div><div class="stat-v g">$299</div></div>
+    <div class="stat"><div class="stat-l">Best 256GB</div><div class="stat-v g">$399</div></div>
+    <div class="stat"><div class="stat-l">Best 512GB</div><div class="stat-v g">$599</div></div>
+    <div class="stat"><div class="stat-l">All-time low</div><div class="stat-v a">$278</div></div>
+    <div class="stat"><div class="stat-l">Education</div><div class="stat-v b">$329</div></div>
+  </div>
+  <div class="divlabel">Full price table — Wi-Fi</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Storage</th><th>MSRP</th><th>Amazon Now</th><th>Best Buy</th><th>Apple Edu</th><th>All-Time Low</th></tr></thead>
+    <tbody>
+      <tr><td>128GB</td><td class="p-orig">$349</td><td class="p-best">$299</td><td>$299</td><td class="p-edu">$329</td><td>$278 (May '25)</td></tr>
+      <tr><td>256GB</td><td class="p-orig">$449</td><td class="p-best">$399</td><td>$449</td><td class="p-edu">$429</td><td>~$369</td></tr>
+      <tr><td>512GB</td><td class="p-orig">$649</td><td class="p-best">$599</td><td>$649</td><td class="p-edu">$629</td><td>~$549</td></tr>
+      <tr><td>128GB Cellular</td><td class="p-orig">$499</td><td>$449</td><td>$499</td><td class="p-edu">$479</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <div class="cards">
+    <div class="card top">
+      <div class="card-row">
+        <div class="card-name">128GB Wi-Fi — Amazon</div>
+        <div class="card-price"><span class="card-p">$299</span><span class="card-was">$349</span><span class="card-save">–$50</span></div>
+      </div>
+      <div class="card-body">Only $21 above the all-time low. Colors: blue, silver, pink, yellow. Best no-frills tablet deal available right now.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-g">Best cash deal</span><span class="tag tag-n">Near ATL</span></div>
+        <a class="btn" href="https://www.amazon.com/s?k=ipad+11th+generation+a16+128gb" target="_blank">Shop ↗</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div class="card-name">Apple Certified Refurbished</div>
+        <div class="card-price"><span class="card-p">~$259–299</span></div>
+      </div>
+      <div class="card-body">Launched March 2025, so refurb units are available with full 1-year warranty. Stock moves fast — check often.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-g">Refurb available</span></div>
+        <a class="btn" href="https://www.apple.com/shop/refurbished/ipad/ipad" target="_blank">Check ↗</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-row">
+        <div class="card-name">Best Buy Open Box</div>
+        <div class="card-price"><span class="card-p">~$230–280</span></div>
+      </div>
+      <div class="card-body">Excellent condition = all accessories, essentially new. Filter to zip 90035 on bestbuy.com/open-box for local stock.</div>
+      <div class="card-foot">
+        <div class="tags"><span class="tag tag-n">Open box</span></div>
+        <a class="btn" href="https://www.bestbuy.com/site/open-box/ipad" target="_blank">Check ↗</a>
+      </div>
+    </div>
+  </div>
+  <div class="strategy">
+    <h4>Buying strategy</h4>
+    <ul>
+      <li>Amazon's $299 is only $21 above the all-time low — excellent time to buy.</li>
+      <li>No Apple Intelligence — if that matters, go mini 7 ($399) or Air M4 ($559) instead.</li>
+      <li>Apple Certified Refurb at ~$259–299 with full warranty is the best value if you find stock.</li>
+      <li>Best Buy open box can hit below $280 in Excellent condition.</li>
+      <li>Best Buy trade-in promos sometimes drop this below $249 — check if you have an old device.</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <span>Apple Deals · Zip 90035 · <span id="footer-date"></span></span>
+  <span>Prices change. Always verify before purchasing.</span>
+</footer>
+
+</div><!-- /app -->
+
+<script>
+function unlock() {
+  const v = document.getElementById('pw').value;
+  if (v === atob('Z2FiZWNvb2w=')) {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    sessionStorage.setItem('ad_ok', '1');
+  } else {
+    const e = document.getElementById('gate-err');
+    e.style.display = 'block';
+    setTimeout(() => e.style.display = 'none', 2500);
+  }
+}
+document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
+if (sessionStorage.getItem('ad_ok') === '1') {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+const ds = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+document.getElementById('upd-date').textContent = ds;
+const ov = document.getElementById('ov-sub');
+if (ov) ov.textContent = 'Prices last verified ' + ds;
+document.getElementById('footer-date').textContent = ds;
+
+const TABS = ['overview','macbook','ipadair','ipadmini','ipad'];
+function go(id) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  document.querySelectorAll('.tab')[TABS.indexOf(id)].classList.add('on');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
