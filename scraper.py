@@ -1,233 +1,208 @@
 #!/usr/bin/env python3
 """
 Apple Deal Tracker — Daily Price Scraper
-Fetches current prices from Amazon, Best Buy, and Apple.
+Uses SerpApi to fetch real live Amazon prices by ASIN.
 Runs via GitHub Actions every day at 9am UTC.
 Updates index.html with fresh prices and today's date.
 """
 
 import re
+import os
 import json
 import urllib.request
-import urllib.error
+import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/122.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-}
+SERPAPI_KEY = os.environ.get("SERPAPI_KEY", "")
 
-# ── Price definitions ──────────────────────────────────────────────────────────
-# Structure: { product_key: { retailer: price_string } }
-# These are the MSRP / known prices loaded as baseline.
-# The scraper will attempt live fetches and overwrite if successful.
+# ── Products to track ─────────────────────────────────────────────────────────
 
-BASELINE = {
+PRODUCTS = {
     "mb13": {
-        "amazon": "$1,049",
-        "costco": "$1,049",
-        "bestbuy": "$1,099",
-        "apple": "$1,099",
-        "edu": "$999",
-        "bh": "$1,099",
-        "refurb": "N/A",
-        "openbox": "~$850–950",
+        "asin": "B0DYHPGPFS",
+        "name": "MacBook Air 13\" M5 16GB/512GB",
+        "msrp": 1099,
+        "shop_url": "https://www.amazon.com/s?k=macbook+air+m5+13+512gb",
     },
     "mb15": {
-        "amazon": "$1,249",
-        "bestbuy": "$1,299",
-        "edu": "$1,199",
-        "refurb": "N/A",
+        "asin": "B0DYHQ3TTW",
+        "name": "MacBook Air 15\" M5 16GB/512GB",
+        "msrp": 1299,
+        "shop_url": "https://www.amazon.com/s?k=macbook+air+m5+15+512gb",
     },
     "air11": {
-        "amazon": "$559",
-        "bestbuy": "$559",
-        "edu": "$549",
-        "msrp": "$599",
+        "asin": "B0DYPQL5X4",
+        "name": "iPad Air 11\" M4 128GB",
+        "msrp": 599,
+        "shop_url": "https://www.amazon.com/s?k=ipad+air+m4+11+inch+128gb",
     },
     "air13": {
-        "amazon": "$749",
-        "bestbuy": "$749",
-        "edu": "$749",
-        "msrp": "$799",
+        "asin": "B0DYPQM7ZK",
+        "name": "iPad Air 13\" M4 128GB",
+        "msrp": 799,
+        "shop_url": "https://www.amazon.com/s?k=ipad+air+m4+13+inch+128gb",
     },
     "mini128": {
-        "amazon": "$399",
-        "bestbuy": "$399",
-        "edu": "$449",
-        "msrp": "$499",
-        "atl": "$349",
+        "asin": "B0CHX2HFZN",
+        "name": "iPad mini 7 128GB",
+        "msrp": 499,
+        "shop_url": "https://www.amazon.com/s?k=ipad+mini+7+128gb",
     },
     "mini256": {
-        "amazon": "$499",
-        "bestbuy": "$499",
-        "edu": "$549",
-        "msrp": "$599",
+        "asin": "B0CHX3HHWJ",
+        "name": "iPad mini 7 256GB",
+        "msrp": 599,
+        "shop_url": "https://www.amazon.com/s?k=ipad+mini+7+256gb",
     },
     "mini512": {
-        "amazon": "$679",
-        "bestbuy": "$679",
-        "edu": "$729",
-        "msrp": "$779",
+        "asin": "B0CHX4LLKQ",
+        "name": "iPad mini 7 512GB",
+        "msrp": 779,
+        "shop_url": "https://www.amazon.com/s?k=ipad+mini+7+512gb",
     },
     "ipad128": {
-        "amazon": "$299",
-        "bestbuy": "$299",
-        "edu": "$329",
-        "msrp": "$349",
-        "atl": "$278",
+        "asin": "B0D3J6KPKF",
+        "name": "iPad 11th Gen 128GB",
+        "msrp": 349,
+        "shop_url": "https://www.amazon.com/s?k=ipad+11th+generation+128gb",
     },
     "ipad256": {
-        "amazon": "$399",
-        "bestbuy": "$449",
-        "edu": "$429",
-        "msrp": "$449",
+        "asin": "B0D3J7MPQR",
+        "name": "iPad 11th Gen 256GB",
+        "msrp": 449,
+        "shop_url": "https://www.amazon.com/s?k=ipad+11th+generation+256gb",
     },
 }
 
-# ── Live fetch helpers ─────────────────────────────────────────────────────────
+# Fallback prices used when SerpApi fetch fails
+BASELINE = {
+    "mb13":    1049,
+    "mb15":    1249,
+    "air11":   559,
+    "air13":   749,
+    "mini128": 399,
+    "mini256": 499,
+    "mini512": 679,
+    "ipad128": 299,
+    "ipad256": 399,
+}
 
-def fetch(url, timeout=12):
-    """Fetch a URL and return text, or None on failure."""
+# ── SerpApi fetch ─────────────────────────────────────────────────────────────
+
+def fetch_price(asin):
+    """Fetch current Amazon price for an ASIN via SerpApi. Returns float or None."""
+    if not SERPAPI_KEY:
+        return None
+
+    params = urllib.parse.urlencode({
+        "engine": "amazon_product",
+        "asin": asin,
+        "api_key": SERPAPI_KEY,
+        "country": "us",
+    })
+
     try:
-        req = urllib.request.Request(url, headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.read().decode("utf-8", errors="replace")
+        req = urllib.request.Request(f"https://serpapi.com/search.json?{params}")
+        with urllib.request.urlopen(req, timeout=20) as r:
+            data = json.loads(r.read().decode("utf-8"))
+
+        pr = data.get("product_results", {})
+
+        # Try multiple price fields SerpApi may return
+        for field in ["price", "list_price"]:
+            val = pr.get(field)
+            if val:
+                clean = re.sub(r"[^\d.]", "", str(val))
+                if clean:
+                    return float(clean)
+
+        # Try offers summary
+        for offer in pr.get("offers_summary", []):
+            val = offer.get("price", "")
+            clean = re.sub(r"[^\d.]", "", str(val))
+            if clean:
+                return float(clean)
+
     except Exception as e:
-        print(f"  fetch failed {url[:60]}…  ({e})")
-        return None
+        print(f"  error: {e}")
 
-
-def extract_price(html, patterns):
-    """Try a list of regex patterns against html, return first match or None."""
-    if not html:
-        return None
-    for pat in patterns:
-        m = re.search(pat, html)
-        if m:
-            raw = m.group(1).replace(",", "").strip()
-            try:
-                val = float(raw)
-                return f"${val:,.0f}" if val == int(val) else f"${val:,.2f}"
-            except ValueError:
-                pass
     return None
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
-def fetch_amazon_price(asin):
-    """Attempt to get price from Amazon product page."""
-    url = f"https://www.amazon.com/dp/{asin}"
-    html = fetch(url)
-    patterns = [
-        r'"priceAmount":\s*([\d.]+)',
-        r'<span[^>]+class="[^"]*a-price-whole[^"]*"[^>]*>([\d,]+)',
-        r'"price":\s*\{"value":\s*([\d.]+)',
-    ]
-    return extract_price(html, patterns)
+def fmt(n):
+    return f"${n:,.0f}"
 
+def get_savings(current, msrp):
+    diff = msrp - current
+    return f"–{fmt(diff)}" if diff > 0 else ""
 
-def fetch_bestbuy_price(sku):
-    """Attempt to get price from Best Buy API."""
-    url = (
-        f"https://www.bestbuy.com/api/tcfb/model.json?paths=%5B%5B%22shop%22%2C%22"
-        f"buttonstate%22%2C%22v5%22%2C%22item%22%2C%22skus%22%2C{sku}%2C%22conditions%22"
-        f"%2C%22NONE%22%2C%22destinationZipCode%22%2C%2290035%22%2C%22storeId%22%2C%22"
-        f"058%22%2C%22context%22%2C%22cyp%22%2C%22addAll%22%2C%22false%22%5D%5D&"
-        f"method=get"
-    )
-    html = fetch(url)
-    patterns = [r'"currentPrice":\s*([\d.]+)', r'"salePrice":\s*([\d.]+)']
-    return extract_price(html, patterns)
+# ── HTML update ───────────────────────────────────────────────────────────────
 
-
-# ── Product → ASIN / SKU map ───────────────────────────────────────────────────
-# ASINs and BB SKUs for the exact configs we track.
-# If Amazon/BB blocks the request, baseline prices are used as fallback.
-
-AMAZON_ASINS = {
-    "mb13":    "B0DYHPGPFS",   # MacBook Air 13" M5 16GB 512GB Midnight
-    "mb15":    "B0DYHQ3TTW",   # MacBook Air 15" M5 16GB 512GB Midnight
-    "air11":   "B0DYPQL5X4",   # iPad Air 11" M4 128GB Wi-Fi Blue
-    "air13":   "B0DYPQM7ZK",   # iPad Air 13" M4 128GB Wi-Fi Blue
-    "mini128": "B0CHX2HFZN",   # iPad mini 7 128GB Wi-Fi Starlight
-    "mini256": "B0CHX3HHWJ",   # iPad mini 7 256GB Wi-Fi Starlight
-    "mini512": "B0CHX4LLKQ",   # iPad mini 7 512GB Wi-Fi Starlight
-    "ipad128": "B0D3J6KPKF",   # iPad 11th gen 128GB Wi-Fi Blue
-    "ipad256": "B0D3J7MPQR",   # iPad 11th gen 256GB Wi-Fi Blue
-}
-
-BB_SKUS = {
-    "mb13":    "9609849",
-    "mb15":    "9609850",
-    "mini128": "5082982",
-    "ipad128": "5082983",
-}
-
-
-# ── Main update logic ──────────────────────────────────────────────────────────
-
-def scrape_prices():
-    """Try to fetch live prices; fall back to baseline."""
-    prices = {k: dict(v) for k, v in BASELINE.items()}
-
-    print("Fetching live prices…")
-
-    for key, asin in AMAZON_ASINS.items():
-        print(f"  Amazon {key} ({asin})…", end=" ")
-        live = fetch_amazon_price(asin)
-        if live:
-            prices[key]["amazon"] = live
-            print(f"✓ {live}")
-        else:
-            print(f"→ using baseline {prices[key].get('amazon','?')}")
-
-    for key, sku in BB_SKUS.items():
-        print(f"  Best Buy {key} ({sku})…", end=" ")
-        live = fetch_bestbuy_price(sku)
-        if live:
-            prices[key]["bestbuy"] = live
-            print(f"✓ {live}")
-        else:
-            print(f"→ using baseline {prices[key].get('bestbuy','?')}")
-
-    return prices
-
-
-def update_html(prices):
-    """Read index.html, substitute price placeholders, write back."""
+def update_html(prices, date_str):
     html_path = Path(__file__).parent / "index.html"
     html = html_path.read_text(encoding="utf-8")
 
-    now = datetime.now(timezone.utc)
-    date_str = now.strftime("%B %-d, %Y")   # e.g. "March 17, 2026"
+    # Build output price dict
+    out = {}
+    for key, product in PRODUCTS.items():
+        msrp = product["msrp"]
+        current = prices.get(key, BASELINE.get(key, msrp))
+        out[key] = {
+            "current": fmt(current),
+            "msrp": fmt(msrp),
+            "savings": get_savings(current, msrp),
+            "raw": current,
+        }
 
-    # Inject a data block just before </body> so JS can read live prices
-    data_block = f"""
-<script id="live-prices" type="application/json">
-{json.dumps({"updated": date_str, "prices": prices}, indent=2)}
-</script>
-"""
+    block = f"""<script id="apd" type="application/json">{json.dumps({"updated": date_str, "prices": out})}</script>
+<script>
+(function(){{
+  try {{
+    var d = JSON.parse(document.getElementById('apd').textContent);
+    var p = d.prices;
+    document.querySelectorAll('[data-p]').forEach(function(el){{
+      var k=el.getAttribute('data-p'), f=el.getAttribute('data-f')||'current';
+      if(p[k] && p[k][f] !== undefined) el.textContent = p[k][f];
+    }});
+    document.querySelectorAll('.js-date').forEach(function(el){{ el.textContent = d.updated; }});
+  }} catch(e){{}}
+}})();
+</script>"""
 
-    # Remove old block if present
-    html = re.sub(
-        r'<script id="live-prices".*?</script>\s*',
-        "",
-        html,
-        flags=re.DOTALL,
-    )
-
-    html = html.replace("</body>", data_block + "\n</body>")
+    # Remove old block
+    html = re.sub(r'<script id="apd".*?</script>\s*<script>.*?</script>', "", html, flags=re.DOTALL)
+    html = html.replace("</body>", block + "\n</body>")
     html_path.write_text(html, encoding="utf-8")
-    print(f"\n✓ index.html updated — {date_str}")
+    print(f"✓ index.html updated — {date_str}")
 
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def main():
+    now = datetime.now(timezone.utc)
+    date_str = now.strftime("%B %-d, %Y")
+    print(f"\nApple Deal Tracker Scraper — {date_str}")
+    print("=" * 50)
+
+    if not SERPAPI_KEY:
+        print("⚠️  SERPAPI_KEY not found in environment. Using baseline prices.")
+
+    prices = {}
+    for key, product in PRODUCTS.items():
+        print(f"{product['name']} ({product['asin']})... ", end="", flush=True)
+        live = fetch_price(product["asin"])
+        if live:
+            prices[key] = live
+            saved = product["msrp"] - live
+            note = f"saving {fmt(saved)}" if saved > 0 else "at MSRP"
+            print(f"✓ {fmt(live)} ({note})")
+        else:
+            prices[key] = BASELINE.get(key, product["msrp"])
+            print(f"→ fallback {fmt(prices[key])}")
+
+    update_html(prices, date_str)
+    print("\nDone ✓")
 
 if __name__ == "__main__":
-    prices = scrape_prices()
-    update_html(prices)
-    print("Done.")
+    main()
